@@ -1,0 +1,43 @@
+//## gradle plugin for kalang
+apply plugin:'java'
+sourceSets.main.allSource.srcDir("src/main/kalang")
+apply plugin:kalang
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url  "http://dl.bintray.com/kasonyang/maven" 
+        }
+    }
+    dependencies {
+        classpath 'com.kasonyang.kalang:kalang-compiler:0.0.4'
+    }
+}
+import kalang.tool.*;
+class kalang implements Plugin<Project> {
+    void cpKalang(project){
+        def klSrc = new File(project.projectDir,"src/main/kalang")
+        def outDir = new File(project.projectDir,"build/classes/main")
+        println "use src dir:" + klSrc.getAbsolutePath();
+        println "use out dir:" + outDir.getAbsolutePath();
+        if(klSrc.exists()){
+            List<String> cps = new LinkedList();
+            for(f in project.configurations.compile.files){
+                cps.add(f.getAbsolutePath());
+            }
+            String cp = String.join(";",cps);
+            println("class path:" + cp);
+            def args = ["-s",klSrc.getAbsolutePath(),"-o",outDir.getAbsolutePath(),"-cp",String.join(";",cp)];
+            Compiler.main(args as String[])
+            //TODO handle error
+        }
+    }
+    void apply(Project project) {
+        project.task('compileKalang') << {
+            cpKalang(project);
+        }
+    }
+}
+compileJava.dependsOn compileKalang
+
