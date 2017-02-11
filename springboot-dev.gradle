@@ -1,0 +1,40 @@
+bootRun {
+  addResources = true
+}
+def config = System.getProperty("app.config");
+if(config){
+    task("generatePropertyFile") << {
+        File prodPropertiesFile = new File(projectDir,"src/main/resources/application.${config}.properties");
+        if(prodPropertiesFile.exists()){
+            println("using config file:" + prodPropertiesFile.absolutePath);
+            def propertiesOutFile = new File(projectDir,"build/resources/main/application.properties");
+            def propertiesFile = new File(projectDir,"src/main/resources/application.properties");
+            def props = new Properties();
+            props.load(new FileInputStream(propertiesFile));
+            def prodProps = new Properties();
+            prodProps.load(new FileInputStream(prodPropertiesFile));
+            def names = prodProps.propertyNames();
+            for(n in names){
+                props.setProperty(n,prodProps.getProperty(n));
+            }
+            props.save(
+                new FileOutputStream(propertiesOutFile)
+                ,"using ${config} file"
+            );
+        }
+    }
+    war.dependsOn generatePropertyFile
+    generatePropertyFile.dependsOn processResources
+}
+
+task("updateRestartTrigger")<<{
+    def triggerDir = new File("$projectDir",".restart");
+    if(!triggerDir.exists()){
+        triggerDir.mkdirs();
+    }
+    def triggerFile = new File(triggerDir,"trigger");
+    def fos = new FileOutputStream(triggerFile);
+    fos.write("done.".getBytes());
+    fos.close();
+}
+assemble.dependsOn updateRestartTrigger 
