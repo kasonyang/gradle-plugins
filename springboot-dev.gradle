@@ -28,13 +28,15 @@ if(config){
 }
 
 task("updateRestartTrigger")<<{
-    def triggerDir = new File("$projectDir",".restart");
+    def triggerDir = new File("$projectDir","build");
     if(!triggerDir.exists()){
         triggerDir.mkdirs();
     }
-    def triggerFile = new File(triggerDir,"trigger");
+    def triggerFile = new File(triggerDir,".springboot-dev-trigger");
     def fos = new FileOutputStream(triggerFile);
     fos.write("done.".getBytes());
     fos.close();
 }
-assemble.dependsOn updateRestartTrigger 
+
+updateRestartTrigger.dependsOn check
+build.dependsOn updateRestartTrigger
