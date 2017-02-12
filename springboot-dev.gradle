@@ -1,35 +1,37 @@
 bootRun {
   addResources = true
 }
-def config = System.getProperty("app.config");
-if(config){
-    task("generatePropertyFile") << {
-      def propertiesFile = new File(projectDir,"src/main/resources/application.properties");
-      def props = new Properties();
-      if(propertiesFile.exists()){
-        props.load(new FileInputStream(propertiesFile));
+
+task("generatePropertyFile") << {
+  def propertiesFile = new File(projectDir,"src/main/resources/application.properties");
+  def props = new Properties();
+  if(propertiesFile.exists()){
+    props.load(new FileInputStream(propertiesFile));
+  }
+  def propertiesOutFile = new File(projectDir,"build/resources/main/application.properties");
+  def config = System.getProperty("app.config");
+  if(config){
+    File configPropertiesFile = new File(projectDir,"src/main/resources/application.${config}.properties");
+    if(configPropertiesFile.exists()){
+      println("using config file:" + configPropertiesFile.absolutePath);
+      def prodProps = new Properties();
+      prodProps.load(new FileInputStream(configPropertiesFile));
+      def names = prodProps.propertyNames();
+      for(n in names){
+        props.setProperty(n,prodProps.getProperty(n));
       }
-      File prodPropertiesFile = new File(projectDir,"src/main/resources/application.${config}.properties");
-      def propertiesOutFile = new File(projectDir,"build/resources/main/application.properties");
-      if(prodPropertiesFile.exists()){
-        println("using config file:" + prodPropertiesFile.absolutePath);
-        def prodProps = new Properties();
-        prodProps.load(new FileInputStream(prodPropertiesFile));
-        def names = prodProps.propertyNames();
-        for(n in names){
-          props.setProperty(n,prodProps.getProperty(n));
-        }
-      }
-      props.setProperty("spring.devtools.restart.additional-paths","build");
-      props.setProperty("spring.devtools.restart.trigger-file",".springboot-dev-trigger");
-      props.save(
-          new FileOutputStream(propertiesOutFile)
-            ,"using ${config} file"
-      );
     }
-    war.dependsOn generatePropertyFile
-    generatePropertyFile.dependsOn processResources
+  }
+  props.setProperty("spring.devtools.restart.additional-paths","build");
+  props.setProperty("spring.devtools.restart.trigger-file",".springboot-dev-trigger");
+  props.save(
+      new FileOutputStream(propertiesOutFile)
+        ,"using ${config} file"
+  );
 }
+classes.dependsOn generatePropertyFile
+generatePropertyFile.dependsOn processResources
+
 
 task("updateRestartTrigger")<<{
     def triggerDir = new File("$projectDir","build");
